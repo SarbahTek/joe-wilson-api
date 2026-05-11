@@ -1,0 +1,302 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  member
+  owner
+}
+
+enum MasterclassStatus {
+  draft
+  upcoming
+  active
+  completed
+}
+
+enum SessionStatus {
+  upcoming
+  live
+  completed
+}
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  refunded
+}
+
+enum FileType {
+  document
+  audio
+  image
+  video
+  archive
+}
+
+enum InquiryType {
+  general
+  booking
+}
+
+enum InquiryStatus {
+  open
+  closed
+}
+
+enum QuoteStatus {
+  new
+  reviewing
+  quoted
+  booked
+  closed
+}
+
+model User {
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  passwordHash         String
+  firstName            String
+  lastName             String
+  avatarUrl            String?
+  role                 Role      @default(member)
+  emailVerified        Boolean   @default(false)
+  emailVerifyToken     String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  refreshTokenHash     String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  enrollments     Enrollment[]
+  payments        Payment[]
+  sessionProgress SessionProgress[]
+  mediaUploads    MediaLibrary[]
+
+  @@map("users")
+}
+
+model Masterclass {
+  id              String            @id @default(uuid())
+  title           String
+  description     String
+  coverImageUrl   String?
+  priceCents      Int
+  status          MasterclassStatus @default(draft)
+  startsAt        DateTime
+  endsAt          DateTime
+  maxEnrollments  Int?
+  isPublished     Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  sessions    Session[]
+  enrollments Enrollment[]
+  payments    Payment[]
+  resources   Resource[]
+
+  @@map("masterclasses")
+}
+
+model Session {
+  id              String        @id @default(uuid())
+  masterclassId   String
+  title           String
+  description     String?
+  orderIndex      Int
+  status          SessionStatus @default(upcoming)
+  scheduledAt     DateTime?
+  muxAssetId      String?
+  muxPlaybackId   String?
+  durationSeconds Int?
+  liveStreamUrl   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  masterclassRel Masterclass    @relation(fields: [masterclassId], references: [id], onDelete: Cascade)
+  progress    SessionProgress[]
+  resources   Resource[]
+
+  @@map("sessions")
+}
+
+model Enrollment {
+  id              String    @id @default(uuid())
+  userId          String
+  masterclassId   String
+  paymentId       String    @unique
+  enrolledAt      DateTime  @default(now())
+  accessExpiresAt DateTime?
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  masterclass Masterclass @relation(fields: [masterclassId], references: [id], onDelete: Cascade)
+  payment     Payment     @relation(fields: [paymentId], references: [id])
+
+  @@unique([userId, masterclassId])
+  @@map("enrollments")
+}
+
+model SessionProgress {
+  id                 String    @id @default(uuid())
+  userId             String
+  sessionId          String
+  lastWatchedSeconds Int       @default(0)
+  completedAt        DateTime?
+  updatedAt          DateTime  @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sessionId])
+  @@map("session_progress")
+}
+
+model Payment {
+  id               String        @id @default(uuid())
+  userId           String
+  masterclassId    String
+  gatewayReference String?       @unique
+  amountCents      Int
+  currency         String        @default("usd")
+  status           PaymentStatus @default(pending)
+  refundedAt       DateTime?
+  billingMetadata  Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id])
+  masterclass Masterclass @relation(fields: [masterclassId], references: [id])
+  enrollment  Enrollment?
+
+  @@map("payments")
+}
+
+model MediaLibrary {
+  id         String   @id @default(uuid())
+  filename   String
+  storageKey String   @unique
+  mimeType   String
+  fileType   FileType
+  sizeBytes  BigInt
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  uploader  User       @relation(fields: [uploadedBy], references: [id])
+  resources Resource[]
+
+  @@map("media_library")
+}
+
+model Resource {
+  id            String   @id @default(uuid())
+  sessionId     String?
+  masterclassId String?
+  mediaId       String
+  label         String
+  orderIndex    Int
+  createdAt     DateTime @default(now())
+
+  session     Session?     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  masterclass Masterclass? @relation(fields: [masterclassId], references: [id], onDelete: Cascade)
+  media       MediaLibrary @relation(fields: [mediaId], references: [id])
+
+  @@map("resources")
+}
+
+model Inquiry {
+  id          String        @id @default(uuid())
+  senderName  String
+  senderEmail String
+  senderPhone String?
+  type        InquiryType
+  subject     String?
+  message     String
+  status      InquiryStatus @default(open)
+  adminReply  String?
+  repliedAt   DateTime?
+  handledAt   DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@map("inquiries")
+}
+
+model Service {
+  id           String   @id @default(uuid())
+  slug         String   @unique
+  title        String
+  tagline      String?
+  description  String?
+  coverImageUrl String?
+  isPublished  Boolean  @default(false)
+  orderIndex   Int
+  createdAt    DateTime @default(now())
+
+  quoteRequests QuoteRequest[]
+
+  @@map("services")
+}
+
+model QuoteRequest {
+  id              String      @id @default(uuid())
+  serviceId       String
+  clientName      String
+  clientEmail     String
+  clientPhone     String?
+  eventDate       DateTime?
+  eventType       String?
+  location        String?
+  durationNotes   String?
+  budgetMinCents  Int?
+  budgetMaxCents  Int?
+  projectNotes    String?
+  status          QuoteStatus @default(new)
+  adminNotes      String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@map("quote_requests")
+}
+
+model Testimonial {
+  id          String   @id @default(uuid())
+  quote       String
+  authorName  String
+  authorOrg   String?
+  avatarUrl   String?
+  isFeatured  Boolean  @default(false)
+  orderIndex  Int
+  createdAt   DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  venue       String?
+  city        String?
+  country     String?
+  eventDate   DateTime
+  ticketUrl   String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("events")
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
