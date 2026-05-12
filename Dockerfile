@@ -1,34 +1,40 @@
 # ─────────────────────────────────────────────
-# BUILD STAGE
+# Stage 1 — Build TypeScript
 # ─────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-COPY . .
-
+COPY prisma ./prisma
 RUN npx prisma generate
+
+COPY tsconfig.json ./
+COPY src ./src
+
 RUN npm run build
 
 # ─────────────────────────────────────────────
-# PRODUCTION STAGE
+# Stage 2 — Production image
 # ─────────────────────────────────────────────
 FROM node:20-alpine
 
 WORKDIR /app
 
-# ✅ Required for Prisma
+# Required for Prisma on Alpine
 RUN apk add --no-cache openssl
 
-# Copy from builder stage (this now works)
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
+# Reinstall only production dependencies (no devDependencies)
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-EXPOSE 3000
+# Copy compiled output and Prisma files from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY prisma ./prisma
+
+EXPOSE 3001
 
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
