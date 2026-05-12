@@ -141,7 +141,12 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.get('/health', async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    await redis.ping();
+
+    try {
+      await redis.ping();
+    } catch {
+      logger.warn('Redis unavailable');
+    }
 
     res.status(200).json({
       success: true,
