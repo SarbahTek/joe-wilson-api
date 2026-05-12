@@ -140,32 +140,32 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // HEALTH CHECK
 // ─────────────────────────────────────────────────────────────────────────────
 app.get('/health', async (_req, res) => {
+  let dbOk = true;
+  let redisOk = true;
+
   try {
     await prisma.$queryRaw`SELECT 1`;
+  } catch {
+    dbOk = false;
+  }
 
+  if (redis) {
     try {
       await redis.ping();
     } catch {
-      logger.warn('Redis unavailable');
+      redisOk = false;
     }
-
-    res.status(200).json({
-      success: true,
-      status: 'ok',
-      environment: env.NODE_ENV,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (err) {
-    logger.error(err, 'Health check failed');
-
-    res.status(503).json({
-      success: false,
-      status: 'degraded',
-      timestamp: new Date().toISOString(),
-    });
   }
-});
 
+  const isHealthy = dbOk; // Redis optional
+
+  res.status(isHealthy ? 200 : 503).json({
+    success: isHealthy,
+    status: isHealthy ? 'ok' : 'degraded',
+    db: dbOk,
+    redis: redisOk,
+  });
+});
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
