@@ -17,7 +17,7 @@ const envSchema = z.object({
 
   // ── Server ────────────────────────────────────────────────────────────────
   PORT: z.string().default('3001'),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production']),
 
   // Comma-separated list of allowed origins, e.g. "https://mrwilson.com,https://www.mrwilson.com"
   FRONTEND_URLS: z.string().default('http://localhost:3000'),
