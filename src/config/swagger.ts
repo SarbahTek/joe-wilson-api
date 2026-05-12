@@ -1,0 +1,48 @@
+import swaggerJsdoc from 'swagger-jsdoc';
+import { env } from './env';
+
+const options: swaggerJsdoc.Options = {
+  definition: {
+    openapi: '3.0.0',
+
+    info: {
+      title: 'Mr. Wilson API',
+      version: '1.0.0',
+      description: 'Production API documentation for Mr. Wilson platform',
+    },
+
+    servers: [
+      {
+        url:
+          env.NODE_ENV === 'production'
+            ? 'https://your-domain.com'
+            : `http://localhost:${env.PORT}`,
+
+        description:
+          env.NODE_ENV === 'production'
+            ? 'Production Server'
+            : 'Development Server',
+      },
+    ],
+
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+
+  apis: ['./src/modules/**/*.ts'],
+};
+
+export const swaggerSpec = swaggerJsdoc(options);

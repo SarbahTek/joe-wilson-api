@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import * as authService from './auth.service';
 import { AuthRequest } from '../../middleware/authenticate';
 import { ok, created, badRequest, unauthorized, serverError } from '../../utils/response';
+// REMOVED: import { emailQueue } from '../../jobs/email.queue' — it was imported but never used
 
 export async function register(req: Request, res: Response) {
   try {
@@ -46,6 +47,7 @@ export async function logout(req: AuthRequest, res: Response) {
 }
 
 export async function forgotPassword(req: Request, res: Response) {
+  // Always respond with success to prevent email enumeration
   await authService.forgotPassword(req.body.email);
   return ok(res, { message: 'If this email is registered, a reset link has been sent' });
 }

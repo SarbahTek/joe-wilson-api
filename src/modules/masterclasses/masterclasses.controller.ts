@@ -1,18 +1,24 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthRequest } from '../../middleware/authenticate';
 import { prisma } from '../../config/database';
 import { ok, notFound } from '../../utils/response';
 
 export async function listMasterclasses(req: AuthRequest, res: Response) {
-  const userId = req.user!.id;
+  // FIXED: was req.user!.id — crashes if called without auth (e.g. public landing page).
+  // userId is optional now; isEnrolled is false for unauthenticated visitors.
+  const userId = req.user?.id;
 
-  const masterclasses = await prisma.masterclass.findMany({
-    where: { isPublished: true },
-    include: { _count: { select: { sessions: true, enrollments: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [masterclasses, enrollments] = await Promise.all([
+    prisma.masterclass.findMany({
+      where: { isPublished: true },
+      include: { _count: { select: { sessions: true, enrollments: true } } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    userId
+      ? prisma.enrollment.findMany({ where: { userId }, select: { masterclassId: true } })
+      : Promise.resolve([]),
+  ]);
 
-  const enrollments = await prisma.enrollment.findMany({ where: { userId }, select: { masterclassId: true } });
   const enrolledIds = new Set(enrollments.map((e) => e.masterclassId));
 
   const data = masterclasses.map((mc) => ({
@@ -33,7 +39,7 @@ export async function listMasterclasses(req: AuthRequest, res: Response) {
 }
 
 export async function getMasterclass(req: AuthRequest, res: Response) {
-  const userId = req.user!.id;
+  const userId = req.user?.id;
   const { id } = req.params;
 
   const mc = await prisma.masterclass.findUnique({
@@ -46,14 +52,17 @@ export async function getMasterclass(req: AuthRequest, res: Response) {
 
   if (!mc) return notFound(res);
 
-  const enrollment = await prisma.enrollment.findFirst({ where: { userId, masterclassId: id } });
+  const enrollment = userId
+    ? await prisma.enrollment.findFirst({ where: { userId, masterclassId: id } })
+    : null;
 
-  const progressRecords = enrollment
-    ? await prisma.sessionProgress.findMany({
-        where: { userId, session: { masterclassId: id } },
-        select: { sessionId: true, completedAt: true, lastWatchedSeconds: true },
-      })
-    : [];
+  const progressRecords =
+    enrollment && userId
+      ? await prisma.sessionProgress.findMany({
+          where: { userId, session: { masterclassId: id } },
+          select: { sessionId: true, completedAt: true, lastWatchedSeconds: true },
+        })
+      : [];
 
   const progressMap = new Map(progressRecords.map((p) => [p.sessionId, p]));
 
@@ -65,13 +74,13 @@ export async function getMasterclass(req: AuthRequest, res: Response) {
     status: s.status,
     scheduledAt: s.scheduledAt,
     durationSeconds: s.durationSeconds,
-    progress: progressMap.get(s.id) || null,
+    progress: progressMap.get(s.id) ?? null,
   }));
 
   return ok(res, { ...mc, sessions, isEnrolled: !!enrollment });
 }
 
-export async function getMasterclassSessions(req: AuthRequest, res: Response) {
+export async function getMasterclassSessions(req: Request, res: Response) {
   const { id } = req.params;
   const sessions = await prisma.session.findMany({
     where: { masterclassId: id },

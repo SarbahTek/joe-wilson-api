@@ -68,12 +68,16 @@ export async function uploadMedia(req: AuthRequest, res: Response) {
 
   const media = await prisma.mediaLibrary.create({
     data: {
-      filename: req.file.originalname,
-      storageKey,
-      url,
-      mimeType: req.file.mimetype,
-      fileType: getFileType(req.file.mimetype),
-      sizeBytes: BigInt(req.file.size),
+      filename: req.file?.originalname || 'upload',
+    
+      storageKey: url,
+    
+      mimeType: req.file?.mimetype || 'application/octet-stream',
+    
+      fileType: FileType.image,
+    
+      sizeBytes: BigInt(req.file?.size || 0),
+    
       uploadedBy: req.user!.id,
     },
   });

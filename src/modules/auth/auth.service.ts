@@ -4,7 +4,16 @@ import { prisma } from '../../config/database';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt';
 import { sendWelcomeEmail, sendPasswordResetEmail } from '../../utils/email';
 
-function safeUser(user: { id: string; email: string; firstName: string; lastName: string; avatarUrl: string | null; role: string; emailVerified: boolean; createdAt: Date }) {
+function safeUser(user: {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  role: string;
+  emailVerified: boolean;
+  createdAt: Date;
+}) {
   return {
     id: user.id,
     email: user.email,
@@ -23,7 +32,12 @@ function generateTokens(user: { id: string; email: string; role: string }) {
   return { accessToken, refreshToken };
 }
 
-export async function register(data: { firstName: string; lastName: string; email: string; password: string }) {
+export async function register(data: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}) {
   const existing = await prisma.user.findUnique({ where: { email: data.email } });
   if (existing) throw new Error('EMAIL_TAKEN');
 
@@ -76,7 +90,7 @@ export async function refresh(rawToken: string) {
 
   const valid = await bcrypt.compare(rawToken, user.refreshTokenHash);
   if (!valid) {
-    // Possible replay attack - invalidate all sessions
+    // Possible replay attack — invalidate all sessions
     await prisma.user.update({ where: { id: user.id }, data: { refreshTokenHash: null } });
     throw new Error('INVALID_TOKEN');
   }
@@ -95,24 +109,32 @@ export async function logout(userId: string) {
 
 export async function forgotPassword(email: string) {
   const user = await prisma.user.findUnique({ where: { email } });
-  // Always return success to prevent email enumeration
+  // Always return (no throw) to prevent email enumeration
   if (!user) return;
 
-  const token = crypto.randomBytes(32).toString('hex');
+  const rawToken = crypto.randomBytes(32).toString('hex');
   const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  // FIXED: store a SHA-256 hash of the token, never the raw token.
+  // If the database is breached, attackers cannot use leaked tokens.
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { resetPasswordToken: token, resetPasswordExpires: expires },
+    data: { resetPasswordToken: tokenHash, resetPasswordExpires: expires },
   });
 
-  await sendPasswordResetEmail(user.email, token);
+  // Send the raw token to the user's email — they never see the hash
+  await sendPasswordResetEmail(user.email, rawToken);
 }
 
-export async function resetPassword(token: string, newPassword: string) {
+export async function resetPassword(rawToken: string, newPassword: string) {
+  // Hash the incoming token before looking it up in the database
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
   const user = await prisma.user.findFirst({
     where: {
-      resetPasswordToken: token,
+      resetPasswordToken: tokenHash,
       resetPasswordExpires: { gt: new Date() },
     },
   });
@@ -121,7 +143,12 @@ export async function resetPassword(token: string, newPassword: string) {
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash, resetPasswordToken: null, resetPasswordExpires: null, refreshTokenHash: null },
+    data: {
+      passwordHash,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+      refreshTokenHash: null, // force re-login on all devices
+    },
   });
 }
 
@@ -131,7 +158,10 @@ export async function getMe(userId: string) {
   return safeUser(user);
 }
 
-export async function updateProfile(userId: string, data: { firstName?: string; lastName?: string; avatarUrl?: string }) {
+export async function updateProfile(
+  userId: string,
+  data: { firstName?: string; lastName?: string; avatarUrl?: string }
+) {
   const user = await prisma.user.update({ where: { id: userId }, data });
   return safeUser(user);
 }

@@ -3,9 +3,28 @@ import { prisma } from '../../config/database';
 import { ok, created, notFound } from '../../utils/response';
 import { sendInquiryNotificationEmail, sendInquiryReplyEmail } from '../../utils/email';
 
+// FIXED: sanitize user-supplied strings before embedding in HTML emails.
+// Prevents HTML injection / stored XSS in the admin's inbox.
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export async function submitInquiry(req: Request, res: Response) {
+  // Input is already validated by the Zod schema in inquiries.routes.ts
   const inquiry = await prisma.inquiry.create({ data: req.body });
-  await sendInquiryNotificationEmail(inquiry.senderName, inquiry.senderEmail, inquiry.message);
+
+  // Pass escaped values to the email utility
+  await sendInquiryNotificationEmail(
+    escapeHtml(inquiry.senderName),
+    escapeHtml(inquiry.senderEmail),
+    escapeHtml(inquiry.message)
+  );
+
   return created(res, { id: inquiry.id });
 }
 
@@ -33,7 +52,7 @@ export async function replyToInquiry(req: Request, res: Response) {
     data: { adminReply: req.body.replyText, repliedAt: new Date(), status: 'closed' },
   });
 
-  await sendInquiryReplyEmail(inquiry.senderEmail, inquiry.senderName, req.body.replyText);
+  await sendInquiryReplyEmail(inquiry.senderEmail, escapeHtml(inquiry.senderName), req.body.replyText);
   return ok(res, updated);
 }
 

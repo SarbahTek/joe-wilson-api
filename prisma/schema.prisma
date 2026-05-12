@@ -79,28 +79,32 @@ model User {
   sessionProgress SessionProgress[]
   mediaUploads    MediaLibrary[]
 
+  // ADDED: index for password reset token lookup (used in resetPassword query)
+  @@index([resetPasswordToken])
   @@map("users")
 }
 
 model Masterclass {
-  id              String            @id @default(uuid())
-  title           String
-  description     String
-  coverImageUrl   String?
-  priceCents      Int
-  status          MasterclassStatus @default(draft)
-  startsAt        DateTime
-  endsAt          DateTime
-  maxEnrollments  Int?
-  isPublished     Boolean           @default(false)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id             String            @id @default(uuid())
+  title          String
+  description    String
+  coverImageUrl  String?
+  priceCents     Int
+  status         MasterclassStatus @default(draft)
+  startsAt       DateTime
+  endsAt         DateTime
+  maxEnrollments Int?
+  isPublished    Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   sessions    Session[]
   enrollments Enrollment[]
   payments    Payment[]
   resources   Resource[]
 
+  // ADDED: composite index for the most common public query filter
+  @@index([isPublished, status])
   @@map("masterclasses")
 }
 
@@ -119,10 +123,12 @@ model Session {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  masterclassRel Masterclass    @relation(fields: [masterclassId], references: [id], onDelete: Cascade)
-  progress    SessionProgress[]
-  resources   Resource[]
+  masterclassRel Masterclass       @relation(fields: [masterclassId], references: [id], onDelete: Cascade)
+  progress       SessionProgress[]
+  resources      Resource[]
 
+  // ADDED: index for fetching sessions by masterclass (very frequent query)
+  @@index([masterclassId])
   @@map("sessions")
 }
 
@@ -139,6 +145,9 @@ model Enrollment {
   payment     Payment     @relation(fields: [paymentId], references: [id])
 
   @@unique([userId, masterclassId])
+  // ADDED: indexes for the two most common lookup patterns
+  @@index([userId])
+  @@index([masterclassId])
   @@map("enrollments")
 }
 
@@ -154,6 +163,8 @@ model SessionProgress {
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([userId, sessionId])
+  // ADDED: index for progress lookups by user
+  @@index([userId])
   @@map("session_progress")
 }
 
@@ -174,6 +185,10 @@ model Payment {
   masterclass Masterclass @relation(fields: [masterclassId], references: [id])
   enrollment  Enrollment?
 
+  // ADDED: indexes for admin dashboard queries and user payment history
+  @@index([userId])
+  @@index([status])
+  @@index([masterclassId])
   @@map("payments")
 }
 
@@ -227,15 +242,15 @@ model Inquiry {
 }
 
 model Service {
-  id           String   @id @default(uuid())
-  slug         String   @unique
-  title        String
-  tagline      String?
-  description  String?
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  title         String
+  tagline       String?
+  description   String?
   coverImageUrl String?
-  isPublished  Boolean  @default(false)
-  orderIndex   Int
-  createdAt    DateTime @default(now())
+  isPublished   Boolean  @default(false)
+  orderIndex    Int
+  createdAt     DateTime @default(now())
 
   quoteRequests QuoteRequest[]
 
@@ -243,22 +258,22 @@ model Service {
 }
 
 model QuoteRequest {
-  id              String      @id @default(uuid())
-  serviceId       String
-  clientName      String
-  clientEmail     String
-  clientPhone     String?
-  eventDate       DateTime?
-  eventType       String?
-  location        String?
-  durationNotes   String?
-  budgetMinCents  Int?
-  budgetMaxCents  Int?
-  projectNotes    String?
-  status          QuoteStatus @default(new)
-  adminNotes      String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id            String      @id @default(uuid())
+  serviceId     String
+  clientName    String
+  clientEmail   String
+  clientPhone   String?
+  eventDate     DateTime?
+  eventType     String?
+  location      String?
+  durationNotes String?
+  budgetMinCents Int?
+  budgetMaxCents Int?
+  projectNotes  String?
+  status        QuoteStatus @default(new)
+  adminNotes    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   service Service @relation(fields: [serviceId], references: [id])
 
@@ -266,14 +281,14 @@ model QuoteRequest {
 }
 
 model Testimonial {
-  id          String   @id @default(uuid())
-  quote       String
-  authorName  String
-  authorOrg   String?
-  avatarUrl   String?
-  isFeatured  Boolean  @default(false)
-  orderIndex  Int
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  quote      String
+  authorName String
+  authorOrg  String?
+  avatarUrl  String?
+  isFeatured Boolean  @default(false)
+  orderIndex Int
+  createdAt  DateTime @default(now())
 
   @@map("testimonials")
 }

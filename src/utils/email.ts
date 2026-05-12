@@ -24,7 +24,7 @@ export async function sendWelcomeEmail(to: string, firstName: string) {
 }
 
 export async function sendPasswordResetEmail(to: string, token: string) {
-  const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${token}`;
+  const resetUrl = `${env.FRONTEND_URLS.split(',')[0]}/reset-password?token=${token}`;
   await sendEmail(
     to,
     'Reset your password',
