@@ -1,3 +1,4 @@
+import 'dotenv/config';
 console.log('RAW NODE_ENV:', process.env.NODE_ENV);
 import './config/env'; // Validate env vars first
 
