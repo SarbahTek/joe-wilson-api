@@ -71,7 +71,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'"],
       },
     },
-  })
+  }) as express.RequestHandler
 );
 
 // CORS
@@ -105,7 +105,7 @@ app.use(compression());
 // ─────────────────────────────────────────────────────────────────────────────
 // LOGGING
 // ─────────────────────────────────────────────────────────────────────────────
-app.use(httpLogger);
+app.use(httpLogger as unknown as express.RequestHandler);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SWAGGER DOCS (protected in production)
@@ -131,10 +131,13 @@ if (env.NODE_ENV !== 'production') {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Stripe webhook (must come BEFORE json parser)
-app.use('/v1/payments/webhook', express.raw({ type: 'application/json' }));
+app.use(
+  '/v1/payments/webhook',
+  express.raw({ type: 'application/json' }) as express.RequestHandler
+);
 
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: '1mb' }) as express.RequestHandler);
+app.use(express.urlencoded({ extended: true, limit: '1mb' }) as express.RequestHandler);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HEALTH CHECK

@@ -6,7 +6,11 @@ import * as controller from './payments.controller';
 const router = Router();
 
 // IMPORTANT: Webhook route must use raw body parser before express.json()
-router.post('/webhook', express.raw({ type: 'application/json' }), controller.stripeWebhook);
+router.post(
+    '/webhook',
+    express.raw({ type: 'application/json' }) as express.RequestHandler,
+    controller.stripeWebhook
+  );
 
 router.post('/checkout', authenticate, controller.createCheckout);
 router.get('/my', authenticate, controller.getMyPayments);
