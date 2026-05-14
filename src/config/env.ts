@@ -57,7 +57,11 @@ const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
   console.error('❌ Invalid environment variables:');
   console.error(JSON.stringify(parsed.error.format(), null, 2));
-  process.exit(1);
+
+  // Only crash in production
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  }
 }
 
-export const env = parsed.data;
+export const env = parsed.success ? parsed.data : (process.env as any);
