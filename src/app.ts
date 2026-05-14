@@ -139,10 +139,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }) as express.RequestH
 // HEALTH CHECK
 // ─────────────────────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
-  res.status(200).json({
-    success: true,
-    status: 'ok',
-  });
+  res.status(200).json({ ok: true });
 });
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTES
