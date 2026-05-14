@@ -40,8 +40,17 @@ import mediaRoutes from './modules/media/media.routes';
 import userRoutes from './modules/users/users.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 
-const app = express();
 
+const app = express();
+// ─────────────────────────────────────────────────────────────────────────────
+// HEALTH CHECK
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'ok',
+  });
+});
 // ─────────────────────────────────────────────────────────────────────────────
 // TRUST PROXY
 // ─────────────────────────────────────────────────────────────────────────────
@@ -136,15 +145,7 @@ app.use(
 app.use(express.json({ limit: '1mb' }) as express.RequestHandler);
 app.use(express.urlencoded({ extended: true, limit: '1mb' }) as express.RequestHandler);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HEALTH CHECK
-// ─────────────────────────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    success: true,
-    status: 'ok',
-  });
-});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
