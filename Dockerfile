@@ -39,4 +39,4 @@ RUN chmod +x ./start.sh
 EXPOSE 8080
 
 # ✅ ONLY ONE CMD
-CMD ["sh", "./start.sh"]
+CMD ["node","dist/app.js"]
