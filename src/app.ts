@@ -78,7 +78,7 @@ app.use(
 // CORS
 const allowedOrigins = env.FRONTEND_URLS
   .split(',')
-  .map((o) => o.trim())
+  .map((o: string) => o.trim())
   .filter(Boolean);
 
   app.use(
