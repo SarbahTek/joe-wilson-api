@@ -81,17 +81,12 @@ const allowedOrigins = env.FRONTEND_URLS
   .map((o) => o.trim())
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-  })
-);
+  app.use(
+    cors({
+      origin: true,
+      credentials: true,
+    })
+  );
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RATE LIMITING
@@ -214,7 +209,11 @@ app.use(errorHandler);
 // ─────────────────────────────────────────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────────────────────────────────────────
-const PORT = parseInt(env.PORT, 10);
+const PORT = Number(process.env.PORT) || 3001;
+
+console.log('🚀 process.env.PORT:', process.env.PORT);
+console.log('🚀 env.PORT:', env.PORT);
+console.log('🚀 FINAL PORT:', PORT);
 
 const server = app.listen(PORT, () => {
   logger.info(`Wilson API running on port ${PORT} [${env.NODE_ENV}]`);
