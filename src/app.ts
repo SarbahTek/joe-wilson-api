@@ -138,34 +138,10 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }) as express.RequestH
 // ─────────────────────────────────────────────────────────────────────────────
 // HEALTH CHECK
 // ─────────────────────────────────────────────────────────────────────────────
-app.get('/health', async (_req, res) => {
-  let dbOk = true;
-  let redisOk = true;
-
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-  } catch (err) {
-    dbOk = false;
-    console.error('❌ DB health check failed:', err);
-  }
-
-  if (redis) {
-    try {
-      await redis.ping();
-    } catch (err) {
-      redisOk = false;
-      console.error('❌ Redis health check failed:', err);
-    }
-  }
-
-  // ✅ Always return 200 so Railway doesn't kill your app
-  const isHealthy = true;
-
+app.get('/health', (_req, res) => {
   res.status(200).json({
-    success: isHealthy,
-    status: dbOk ? 'ok' : 'degraded',
-    db: dbOk,
-    redis: redisOk,
+    success: true,
+    status: 'ok',
   });
 });
 // ─────────────────────────────────────────────────────────────────────────────
@@ -209,12 +185,11 @@ app.use(errorHandler);
 // ─────────────────────────────────────────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────────────────────────────────────────
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.PORT);
 
-console.log('🚀 process.env.PORT:', process.env.PORT);
-console.log('🚀 env.PORT:', env.PORT);
-console.log('🚀 FINAL PORT:', PORT);
-
+if (!PORT) {
+  throw new Error('PORT is required');
+}
 const server = app.listen(PORT, () => {
   logger.info(`Wilson API running on port ${PORT} [${env.NODE_ENV}]`);
   logger.info(`Allowed origins: ${allowedOrigins.join(', ')}`);
