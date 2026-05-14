@@ -34,7 +34,10 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY prisma ./prisma
+COPY start.sh ./start.sh
+RUN chmod +x ./start.sh
 
+CMD ["sh", "./start.sh"]
 EXPOSE 8080
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
+CMD ["node", "dist/app.js"]
