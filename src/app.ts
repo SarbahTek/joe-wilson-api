@@ -186,10 +186,9 @@ app.use(errorHandler);
 // ─────────────────────────────────────────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────────────────────────────────────────
-const PORT = Number(process.env.PORT) || 8080;
+const PORT = Number(process.env.PORT) || 3000;
 
-console.log('🚀 process.env.PORT:', process.env.PORT);
-console.log('🚀 FINAL PORT:', PORT);
+
 const server = app.listen(PORT, () => {
   logger.info(`Wilson API running on port ${PORT} [${env.NODE_ENV}]`);
   logger.info(`Allowed origins: ${allowedOrigins.join(', ')}`);
