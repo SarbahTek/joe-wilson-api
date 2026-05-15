@@ -48,4 +48,22 @@ const options: swaggerJsdoc.Options = {
       : ['./src/modules/**/*.ts'],
 };
 
-export const swaggerSpec = swaggerJsdoc(options);
+export const swaggerSpec = {
+  openapi: '3.0.0',
+  info: {
+    title: 'Test API',
+    version: '1.0.0',
+  },
+  paths: {
+    '/health': {
+      get: {
+        summary: 'Health check',
+        responses: {
+          200: {
+            description: 'OK',
+          },
+        },
+      },
+    },
+  },
+};
