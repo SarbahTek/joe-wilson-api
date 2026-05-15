@@ -178,6 +178,10 @@ app.use('/v1/admin/payments', adminPaymentRoutes);
 app.use('/v1/admin/users', userRoutes);
 app.use('/v1/admin/media', mediaRoutes);
 
+app.get('/swagger-json', (_req, res) => {
+  res.json(swaggerSpec);
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 404
 // ─────────────────────────────────────────────────────────────────────────────
