@@ -219,7 +219,7 @@ async function shutdown(signal: string) {
         await redis.quit();
         logger.info('Redis disconnected');
       }
-      logger.info('Redis disconnected');
+      
 
       logger.info('Shutdown complete');
       process.exit(0);
