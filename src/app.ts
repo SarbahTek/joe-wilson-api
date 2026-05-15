@@ -1,6 +1,6 @@
 console.log('🚀 APP STARTING...');
 import 'dotenv/config';
-import './config/env'; // Validate env vars first
+import './config/env';
 
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
@@ -39,39 +39,56 @@ import mediaRoutes from './modules/media/media.routes';
 import userRoutes from './modules/users/users.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 
-
 const app = express();
-// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
 // HEALTH CHECK
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.status(200).json({
     success: true,
     status: 'ok',
   });
 });
-// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
 // TRUST PROXY
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 app.set('trust proxy', 1);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REQUEST ID (for tracing)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// REQUEST ID
+// ─────────────────────────────────────────────
 app.use((req: any, res, next) => {
   req.id = randomUUID();
   res.setHeader('X-Request-ID', req.id);
   next();
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TIMEOUT (prevents hanging requests)
-// ─────────────────────────────────────────────────────────────────────────────
-app.use(timeout('10s'));
+// ─────────────────────────────────────────────
+// TIMEOUT (skip docs + health)
+// ─────────────────────────────────────────────
+app.use((req, res, next) => {
+  if (
+    req.path.startsWith('/docs') ||
+    req.path.startsWith('/swagger-json') ||
+    req.path === '/health'
+  ) {
+    return next();
+  }
 
-// ─────────────────────────────────────────────────────────────────────────────
+  return timeout('10s')(req, res, next);
+});
+
+// Prevent execution after timeout
+function haltOnTimedout(req: any, _res: any, next: any) {
+  if (!req.timedout) next();
+}
+app.use(haltOnTimedout);
+
+// ─────────────────────────────────────────────
 // SECURITY
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -84,38 +101,40 @@ app.use(
   }) as express.RequestHandler
 );
 
-// CORS
+// ─────────────────────────────────────────────
+// CORS (restricted)
+// ─────────────────────────────────────────────
 const allowedOrigins = env.FRONTEND_URLS
   .split(',')
   .map((o: string) => o.trim())
   .filter(Boolean);
 
-  app.use(
-    cors({
-      origin: true,
-      credentials: true,
-    })
-  );
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RATE LIMITING
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// RATE LIMIT
+// ─────────────────────────────────────────────
 app.use(globalLimiter);
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // PERFORMANCE
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 app.use(compression());
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // LOGGING
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 app.use(httpLogger as unknown as express.RequestHandler);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SWAGGER DOCS (protected in production)
-// ─────────────────────────────────────────────────────────────────────────────
-if (env.NODE_ENV !== 'production') {
+// ─────────────────────────────────────────────
+// SWAGGER DOCS
+// ─────────────────────────────────────────────
+if (env.NODE_ENV === 'production' && env.DOCS_TOKEN) {
   app.use(
     '/docs',
     (req: Request, res: Response, next: NextFunction) => {
@@ -125,24 +144,22 @@ if (env.NODE_ENV !== 'production') {
       next();
     },
     swaggerUi.serve,
-    (req: Request, res: Response, next: NextFunction) => {
-      try {
-        return swaggerUi.setup(swaggerSpec)(req, res, next);
-      } catch (err) {
-        console.error('🔥 Swagger crashed:', err);
-        return res.status(500).json({
-          success: false,
-          error: 'Swagger failed to load',
-        });
-      }
-    }
-  )};
+    swaggerUi.setup(swaggerSpec)
+  );
+} else {
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
+// Swagger JSON (for debugging)
+app.get('/swagger-json', (_req, res) => {
+  res.json(swaggerSpec);
+});
+
+// ─────────────────────────────────────────────
 // BODY PARSERS
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 
-// Stripe webhook (must come BEFORE json parser)
+// Stripe webhook FIRST
 app.use(
   '/v1/payments/webhook',
   express.raw({ type: 'application/json' }) as express.RequestHandler
@@ -151,10 +168,9 @@ app.use(
 app.use(express.json({ limit: '1mb' }) as express.RequestHandler);
 app.use(express.urlencoded({ extended: true, limit: '1mb' }) as express.RequestHandler);
 
-
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // ROUTES
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 
 // Public
 app.use('/v1/auth', authRoutes);
@@ -178,36 +194,31 @@ app.use('/v1/admin/payments', adminPaymentRoutes);
 app.use('/v1/admin/users', userRoutes);
 app.use('/v1/admin/media', mediaRoutes);
 
-app.get('/swagger-json', (_req, res) => {
-  res.json(swaggerSpec);
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // 404
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Route not found' });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ERROR HANDLER (must be last)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// ERROR HANDLER
+// ─────────────────────────────────────────────
 app.use(errorHandler);
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // START SERVER
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 const PORT = Number(process.env.PORT) || 3000;
-
 
 const server = app.listen(PORT, () => {
   logger.info(`Wilson API running on port ${PORT} [${env.NODE_ENV}]`);
   logger.info(`Allowed origins: ${allowedOrigins.join(', ')}`);
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // GRACEFUL SHUTDOWN
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 async function shutdown(signal: string) {
   logger.info(`${signal} received — shutting down gracefully`);
 
@@ -226,8 +237,10 @@ async function shutdown(signal: string) {
       await emailQueue.close();
       logger.info('Email queue closed');
 
-      await redis.quit();
-      logger.info('Redis disconnected'); 
+      if (redis?.status === 'ready') {
+        await redis.quit();
+        logger.info('Redis disconnected');
+      }
 
       logger.info('Shutdown complete');
       process.exit(0);
