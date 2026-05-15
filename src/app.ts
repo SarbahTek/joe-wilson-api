@@ -116,8 +116,6 @@ app.use(httpLogger as unknown as express.RequestHandler);
 // SWAGGER DOCS (protected in production)
 // ─────────────────────────────────────────────────────────────────────────────
 if (env.NODE_ENV !== 'production') {
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-} else if (env.DOCS_TOKEN) {
   app.use(
     '/docs',
     (req: Request, res: Response, next: NextFunction) => {
@@ -127,9 +125,18 @@ if (env.NODE_ENV !== 'production') {
       next();
     },
     swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec)
-  );
-}
+    (req: Request, res: Response, next: NextFunction) => {
+      try {
+        return swaggerUi.setup(swaggerSpec)(req, res, next);
+      } catch (err) {
+        console.error('🔥 Swagger crashed:', err);
+        return res.status(500).json({
+          success: false,
+          error: 'Swagger failed to load',
+        });
+      }
+    }
+  )};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BODY PARSERS

@@ -15,7 +15,7 @@ const options: swaggerJsdoc.Options = {
       {
         url:
           env.NODE_ENV === 'production'
-            ? 'https://your-domain.com'
+            ? 'https://joe-wilson-api-production.up.railway.app'
             : `http://localhost:${env.PORT}`,
 
         description:
@@ -42,7 +42,10 @@ const options: swaggerJsdoc.Options = {
     ],
   },
 
-  apis: ['./src/modules/**/*.ts'],
+  apis:
+    env.NODE_ENV === 'production'
+      ? ['./dist/modules/**/*.js']
+      : ['./src/modules/**/*.ts'],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
