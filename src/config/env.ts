@@ -43,7 +43,7 @@ const envSchema = z.object({
   RESEND_FROM_EMAIL: z.string().default('noreply@mrwilson.com'),
   ADMIN_EMAIL: z.string().default('joseph@mrwilson.com'),
 
-  REDIS_URL: z.string().default('redis://localhost:6379'),
+  REDIS_URL: z.string().optional(),
 }).refine(
   (data) => data.JWT_SECRET !== data.JWT_REFRESH_SECRET,
   {
