@@ -215,11 +215,8 @@ async function shutdown(signal: string) {
       await emailQueue.close();
       logger.info('Email queue closed');
 
-      if (redis) {
-        await redis.quit();
-        logger.info('Redis disconnected');
-      }
-      
+      await redis.quit();
+      logger.info('Redis disconnected'); 
 
       logger.info('Shutdown complete');
       process.exit(0);
