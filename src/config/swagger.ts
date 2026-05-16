@@ -18,7 +18,7 @@ export const swaggerSpec = swaggerJsdoc({
     ],
   },
 
-  // 🔥 IMPORTANT: re-enable scanning
+
   apis:
     env.NODE_ENV === 'production'
       ? ['./dist/modules/**/*.js']
