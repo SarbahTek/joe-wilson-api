@@ -142,11 +142,11 @@ app.use(httpLogger as unknown as express.RequestHandler);
 if (env.NODE_ENV === 'production' && env.DOCS_TOKEN) {
   app.use(
     '/docs',
-    swagggerUi.serveFiles(swaggerSpec,{}),
-    (req,res) => {
-      res.send(swaggerUi.generateHTML(swaggerSpec)),
-    }
-  );
+    swaggerUi.serveFiles(swaggerSpec,{}),
+(req:Request,res:Response) => {
+  res.send(swaggerUi.generateHTML(swaggerSpec));
+}
+);
 } else {
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
