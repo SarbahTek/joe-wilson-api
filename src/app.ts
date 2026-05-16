@@ -142,14 +142,10 @@ app.use(httpLogger as unknown as express.RequestHandler);
 if (env.NODE_ENV === 'production' && env.DOCS_TOKEN) {
   app.use(
     '/docs',
-    (req: Request, res: Response, next: NextFunction) => {
-      if (req.query.token !== env.DOCS_TOKEN) {
-        return res.status(404).json({ success: false, error: 'Not found' });
-      }
-      next();
-    },
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec)
+    swagggerUi.serveFiles(swaggerSpec,{}),
+    (req,res) => {
+      res.send(swaggerUi.generateHTML(swaggerSpec)),
+    }
   );
 } else {
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
