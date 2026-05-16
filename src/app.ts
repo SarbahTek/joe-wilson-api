@@ -50,7 +50,12 @@ app.get('/health', (_req, res) => {
     status: 'ok',
   });
 });
-
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'JW API is running 🚀',
+  });
+});
 // ─────────────────────────────────────────────
 // TRUST PROXY
 // ─────────────────────────────────────────────
