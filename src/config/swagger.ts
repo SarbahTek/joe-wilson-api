@@ -21,6 +21,6 @@ export const swaggerSpec = swaggerJsdoc({
 
   apis:
     env.NODE_ENV === 'production'
-      ? ['./dist/modules/**/*.js']
+      ? ['./dist/modules/*/.js']
       : ['./src/modules/**/*.ts'],
 });
