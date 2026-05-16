@@ -1,3 +1,110 @@
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     DashboardStats:
+ *       type: object
+ *       properties:
+ *         totalUsers:
+ *           type: integer
+ *           example: 120
+ *         totalMasterclasses:
+ *           type: integer
+ *           example: 8
+ *         totalEnrollments:
+ *           type: integer
+ *           example: 340
+ *         netRevenueCents:
+ *           type: integer
+ *           example: 150000
+ *         refundedCents:
+ *           type: integer
+ *           example: 20000
+ *         failedPayments:
+ *           type: integer
+ *           example: 5
+ *
+ *     RecentPayment:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         amountCents:
+ *           type: integer
+ *         status:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         user:
+ *           type: object
+ *           properties:
+ *             firstName:
+ *               type: string
+ *             lastName:
+ *               type: string
+ *             email:
+ *               type: string
+ *             avatarUrl:
+ *               type: string
+ *               nullable: true
+ *         masterclass:
+ *           type: object
+ *           properties:
+ *             title:
+ *               type: string
+ *
+ *     Inquiry:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         email:
+ *           type: string
+ *         message:
+ *           type: string
+ *         status:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *
+ *     ActiveMasterclass:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         title:
+ *           type: string
+ *         status:
+ *           type: string
+ *         enrolledCount:
+ *           type: integer
+ *
+ *     DashboardResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         data:
+ *           type: object
+ *           properties:
+ *             stats:
+ *               $ref: '#/components/schemas/DashboardStats'
+ *             recentPayments:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/RecentPayment'
+ *             recentInquiries:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Inquiry'
+ *             activeMasterclasses:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ActiveMasterclass'
+ */
 import { Request, Response } from 'express';
 import { prisma } from '../../config/database';
 import { ok } from '../../utils/response';
