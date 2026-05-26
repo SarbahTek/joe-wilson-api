@@ -51,10 +51,17 @@ const options: swaggerJsdoc.Options = {
         // ── Auth ─────────────────────────────────────────────────────────────
         RegisterInput: {
           type: 'object',
-          required: ['email', 'password'],
+          required: ['firstName', 'lastName', 'email', 'password'],
           properties: {
+            firstName: { type: 'string', maxLength: 50, example: 'John' },
+            lastName: { type: 'string', maxLength: 50, example: 'Doe' },
             email: { type: 'string', format: 'email', example: 'user@example.com' },
-            password: { type: 'string', minLength: 8, example: 'strongpassword123' },
+            password: {
+              type: 'string',
+              minLength: 8,
+              example: 'Strongpass1',
+              description: 'Must contain uppercase, lowercase and a number',
+            },
           },
         },
         LoginInput: {
