@@ -5,6 +5,10 @@ import {
   login,
   forgotPassword,
   resetPassword,
+  refresh,
+  logout,
+  getMe,
+  updateMe,
 } from './auth.controller';
 
 import {
@@ -16,6 +20,7 @@ import {
 
 import { validate } from '../../middleware/validate';
 import { authLimiter } from '../../middleware/rateLimit';
+import { authenticate } from '../../middleware/authenticate';
 
 const router = Router();
 
@@ -143,5 +148,84 @@ router.post(
   validate(resetPasswordSchema),
   resetPassword
 );
+
+
+
+/**
+ * @openapi
+ * /v1/auth/me:
+ *   get:
+ *     summary: Get the current authenticated user
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user profile
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/me', authenticate, getMe);
+
+/**
+ * @openapi
+ * /v1/auth/me:
+ *   patch:
+ *     summary: Update the current authenticated user
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Updated user profile
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch('/me', authenticate, updateMe);
+
+/**
+ * @openapi
+ * /v1/auth/refresh:
+ *   post:
+ *     summary: Refresh access and refresh tokens
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New access and refresh tokens returned
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+router.post('/refresh', refresh);
+
+/**
+ * @openapi
+ * /v1/auth/logout:
+ *   post:
+ *     summary: Log out the current authenticated user
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/logout', authenticate, logout);
 
 export default router;

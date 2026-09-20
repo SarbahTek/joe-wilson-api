@@ -5,7 +5,8 @@ import * as controller from './masterclasses.controller';
 
 const router = Router();
 
-router.get('/', authenticate, controller.listMasterclasses);
+// Public catalog: visitors can browse published masterclasses before signing up.
+router.get('/', controller.listMasterclasses);
 router.get('/:id', authenticate, controller.getMasterclass);
 router.get('/:id/sessions', authenticate, controller.getMasterclassSessions);
 
